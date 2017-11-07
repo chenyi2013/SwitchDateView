@@ -7,6 +7,7 @@ import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.support.annotation.Nullable;
+import android.support.v4.view.ViewPager;
 import android.util.AttributeSet;
 import android.util.TypedValue;
 import android.view.MotionEvent;
@@ -19,10 +20,12 @@ import java.util.List;
  * Created by kevin on 17/11/6.
  */
 
-public class DateSwitchView extends View {
+public class DateSwitchView extends View implements ViewPager.OnPageChangeListener {
 
     private int showDateCount;
     private int currentIndex;
+    private int tempIndex;
+
     private int clickIndex;
 
     private float dateFontSize;
@@ -52,10 +55,46 @@ public class DateSwitchView extends View {
     private Paint graphPaint;
     private RectF rect = new RectF();
     private GraphData item;
+    private float positionOffset;
 
     private List<GraphData> data;
 
     private OnItemClickListener onItemClickListener;
+    private ViewPager viewPager;
+
+    @Override
+    public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
+        tempIndex = position;
+        this.positionOffset = positionOffset * meanWidth;
+        invalidate();
+    }
+
+    @Override
+    public void onPageSelected(int position) {
+        currentIndex = position;
+        invalidate();
+    }
+
+    @Override
+    public void onPageScrollStateChanged(int state) {
+    }
+
+
+    public static interface OnItemClickListener {
+        void onClick(int position, GraphData data);
+    }
+
+    public static class GraphData implements Serializable {
+        public String date;
+        public String week;
+        public boolean hasProduct;
+
+        public GraphData(String date, String week, boolean hasProduct) {
+            this.date = date;
+            this.week = week;
+            this.hasProduct = hasProduct;
+        }
+    }
 
 
     public DateSwitchView(Context context) {
@@ -83,6 +122,7 @@ public class DateSwitchView extends View {
 
     public void setCurrentIndex(int currentIndex) {
         this.currentIndex = currentIndex;
+        this.tempIndex = currentIndex;
         invalidate();
     }
 
@@ -155,6 +195,11 @@ public class DateSwitchView extends View {
                     if (rect.contains(x, y) && clickIndex == i) {
                         currentIndex = i;
                         invalidate();
+
+                        if (viewPager != null) {
+                            viewPager.setCurrentItem(i);
+                        }
+
                         if (onItemClickListener != null && data != null && data.size() > i) {
                             onItemClickListener.onClick(i, data.get(i));
                         }
@@ -168,6 +213,25 @@ public class DateSwitchView extends View {
 
 
         return super.onTouchEvent(event);
+    }
+
+
+    public void setViewPager(ViewPager view) {
+
+        if (viewPager == view) {
+            return;
+        }
+        if (viewPager != null) {
+            viewPager.addOnPageChangeListener(null);
+        }
+        if (view.getAdapter() == null) {
+            throw new IllegalStateException("ViewPager does not have adapter instance.");
+        }
+        viewPager = view;
+        viewPager.setCurrentItem(currentIndex);
+        viewPager.addOnPageChangeListener(this);
+        invalidate();
+
     }
 
 
@@ -214,16 +278,10 @@ public class DateSwitchView extends View {
             }
 
             if (currentIndex == i) {
-                canvas.drawRect(
-                        (float) ((i + 1) * meanWidth) - meanWidth / 2
-                        , topPadding + dateFontHeight + weekFontHeight + space1 + space2 + space3 + 2 * r
-                        , (float) ((i + 1) * meanWidth) + meanWidth / 2
-                        , topPadding + dateFontHeight + weekFontHeight + space1 + space2 + space3 + rectHeight + 2 * r, graphPaint);
-
                 datePaint.setColor(dateSelectColor);
+                weekPaint.setColor(weekSelectColor);
                 canvas.drawText(item.date, left, top, datePaint);
 
-                weekPaint.setColor(weekSelectColor);
                 canvas.drawText(item.week, left, topPadding - weekPaint.ascent() + dateFontHeight + space1, weekPaint);
 
             } else {
@@ -232,6 +290,14 @@ public class DateSwitchView extends View {
                 weekPaint.setColor(weekUnSelectColor);
                 canvas.drawText(item.week, left, topPadding - weekPaint.ascent() + dateFontHeight + space1, weekPaint);
 
+            }
+
+            if (tempIndex == i) {
+                canvas.drawRect(
+                        (float) ((i + 1) * meanWidth) - meanWidth / 2 + positionOffset
+                        , topPadding + dateFontHeight + weekFontHeight + space1 + space2 + space3 + 2 * r
+                        , (float) ((i + 1) * meanWidth) + meanWidth / 2 + positionOffset
+                        , topPadding + dateFontHeight + weekFontHeight + space1 + space2 + space3 + rectHeight + 2 * r, graphPaint);
             }
 
         }
@@ -267,22 +333,6 @@ public class DateSwitchView extends View {
      */
     public float spToPx(Context context, float sp) {
         return TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, sp, context.getResources().getDisplayMetrics());
-    }
-
-    public static interface OnItemClickListener {
-        void onClick(int position, GraphData data);
-    }
-
-    public static class GraphData implements Serializable {
-        public String date;
-        public String week;
-        public boolean hasProduct;
-
-        public GraphData(String date, String week, boolean hasProduct) {
-            this.date = date;
-            this.week = week;
-            this.hasProduct = hasProduct;
-        }
     }
 
 

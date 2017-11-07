@@ -1,6 +1,7 @@
 package ired.dateswitchview;
 
 import android.os.Bundle;
+import android.support.v4.view.ViewPager;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 
@@ -38,6 +39,14 @@ public class MainActivity extends AppCompatActivity {
                 Log.i("kevin", "position:" + position + " date:" + data.date);
             }
         });
+
+        ViewPager viewPager = findViewById(R.id.view_pager);
+        viewPager.setAdapter(new MyAdapter(getSupportFragmentManager()));
+        dateSwitchView.setViewPager(viewPager);
+
+
+
+
 
 
     }
